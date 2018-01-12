@@ -1,0 +1,26 @@
+rank,exchange,economy,headquarters,marketCap,monthlyTradeVolume,timeZone,_,dst,open,close,lunch
+1.0,New York Stock Exchange,United States,New York,21377.0,1781.0,EST/EDT,5,MarNov,14:30,21:00,No
+2.0,NASDAQ,United States,New York,9585.0,948.0,EST/EDT,5,MarNov,14:30,21:00,No
+3.0,Japan Exchange Group,Japan,Tokyo,5974.0,536.0,JST,+9,,00:00,06:00,11:3012:30
+4.0,Shanghai Stock Exchange,China,Shanghai,5043.0,517.0,CST,+8,,01:30,07:00,11:3013:00
+5.0,Euronext,European Union,"Amsterdam
+Brussels
+Lisbon
+London
+Paris",4388.0,167.0,CET/CEST,+1,MarOct,08:00,16:30,No
+6.0,London Stock Exchange,United Kingdom,London,4297.0,199.0,GMT/BST,+0,MarOct,08:00,16:30,No
+7.0,Hong Kong Stock Exchange,Hong Kong,Hong Kong,4135.0,178.0,HKT,+8,,01:15,08:00,12:0013:00
+8.0,Shenzhen Stock Exchange,China,Shenzhen,3688.0,680.0,CST,+8,,01:30,07:00,11:3013:00
+9.0,TMX Group,Canada,Toronto,2360.0,92.0,EST/EDT,5,MarNov,14:30,21:00,No
+10.0,National Stock Exchange of India,India,Mumbai,2194.0,93.0,IST,+5.5,,03:45,10:00,No
+11.0,Deutsche Brse,Germany,Frankfurt,2181.0,122.0,CET/CEST,+1,MarOct,07:00,21:00,No
+12.0,Bombay Stock Exchange,India,Mumbai,2175.0,11.0,IST,+5.5,,03:45,10:00,No
+13.0,Korea Exchange,South Korea,Seoul,1683.0,142.0,KST,+9,,00:00,06:00,No
+14.0,SIX Swiss Exchange,Switzerland,Zurich,1649.0,75.0,CET/CEST,+1,MarOct,08:00,16:30,No
+15.0,Nasdaq Nordic," Northern Europe, Armenia",Stockholm,1561.0,77.0,,various,,,,
+16.0,Australian Securities Exchange,Australia,Sydney,1428.0,64.0,AEST/AEDT,+10,OctApr,23:50,06:12,No
+17.0,JSE Limited,South Africa,Johannesburg,1129.0,30.0,CAT,+2,,07:00,15:00,No
+18.0,Taiwan Stock Exchange,Taiwan,Taipei,1068.0,71.0,CST,+8,,01:00,05:30,No
+19.0,BM&F Bovespa,Brazil,So Paulo,935.0,65.0,BRT/BRST,3,OctFeb,13:00,20:00,No
+20.0,BME Spanish Exchanges,Spain,Madrid,896.0,72.0,CET/CEST,+1,MarOct,08:00,16:30,No
+

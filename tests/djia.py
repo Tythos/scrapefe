@@ -12,6 +12,6 @@ def main():
     header, entries = wpse.parseTable(table)
     entries = wpse.convertNumberCols(entries)
     return wpse.tableToDicts(header, entries)
-    
+
 if __name__ == "__main__":
     print(wpse.writeToCsv(main()))

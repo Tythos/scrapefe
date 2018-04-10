@@ -31,14 +31,29 @@ class HistDat(object):
         self.table = numpy.array([])
 
     def initialize(self):
-        """Generate an initial dataset from full pull
+        """Generate an initial dataset from full pull.
         """
         self.header, self.table = av.getHistory(self.symbol)
 
-    def increment(self):
+    def update(self):
         """Update existing dataset with recent entries
         """
-        pass
+        header, table = av.getRecent(self.symbol)
+        tsNew_ndx = header.index('timestamp')
+        min_ts = min(table[:,tsNew_ndx])
+        tsOld_ndx = self.header.index('timestamp')
+        max_ts = max(self.table[:,tsOld_ndx])
+        if min_ts > max_ts:
+            # gap between old and new datasets, we need to do a full pull
+            header, table = av.getHistory(self.symbol)
+        # for now, insist on identical schemas
+        if len(header) is not len(self.header):
+            raise Exception('Identical schemas required')
+        if not all([header[i] == self.header[i] for i in range(len(header))]):
+            raise Exception('Identical schemas required')
+        isNew_flags = table[:,tsNew_ndx] > max_ts
+        newRows = table[isNew_flags,:]
+        self.table = numpy.append(newRows, self.table, axis=0)
 
     def toXLSX(self, xlsxPath):
         """Save existing datset to xlsx worksheet. Sheet name is security
@@ -87,12 +102,15 @@ class HistDat(object):
         return hf
 
     @classmethod
-    def fromXLSX(cls, xlsxPath, sheetName):
+    def fromXLSX(cls, xlsxPath, sheetName=None):
         """Load existing dataset from xlsx worksheet
         """
-        obj = cls(sheetName)
         wb = openpyxl.load_workbook(xlsxPath)
+        if not sheetName:
+            sheetNames = wb.get_sheet_names()
+            sheetName = sheetNames[0]
         ws = wb.get_sheet_by_name(sheetName)
+        obj = cls(sheetName)
         obj.header = []
         for jj in range(ws.max_column):
             obj.header.append(ws.cell(row=1, column=jj+1).value)
@@ -100,7 +118,10 @@ class HistDat(object):
         for ii in range(1,ws.max_row):
             row = []
             for jj in range(ws.max_column):
-                row.append(ws.cell(row=ii+1, column=jj+1).value)
+                value = ws.cell(row=ii+1, column=jj+1).value
+                if jj is obj.header.index('timestamp'):
+                    value = value.timestamp()
+                row.append(value)
             row = numpy.array(row)
             if ii is 1:
                 obj.table = numpy.append(obj.table, row).reshape(1, -1)

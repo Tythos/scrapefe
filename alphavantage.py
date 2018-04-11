@@ -8,16 +8,9 @@ import time
 import datetime
 import numpy
 import requests
+from scrapefe import keys
 
 DEFAULT_BASE_URL = 'https://www.alphavantage.co/query'
-
-def getApiKey():
-    """
-    """
-    packPath, _ = os.path.split(__file__)
-    keyPath = packPath + os.path.sep + 'keys'
-    with open(keyPath + os.path.sep + 'alphavantage.txt') as f:
-        return f.read().strip()
 
 def getRecent(symbol):
     """Does a recent-only pull of historical data from the Alpha Vantage API.
@@ -25,7 +18,7 @@ def getRecent(symbol):
     params = {
         'function': 'TIME_SERIES_DAILY_ADJUSTED',
         'symbol': symbol,
-        'apikey': getApiKey(),
+        'apikey': keys.get('alphavantage.tok'),
         'datatype': 'csv',
         'outputsize': 'compact'
     }
@@ -54,7 +47,7 @@ def getHistory(symbol):
     params = {
         'function': 'TIME_SERIES_DAILY_ADJUSTED',
         'symbol': symbol,
-        'apikey': getApiKey(),
+        'apikey': keys.get('alphavantage.tok'),
         'datatype': 'csv',
         'outputsize': 'full'
     }

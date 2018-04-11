@@ -3,24 +3,29 @@
 """
 
 import os
+import csv
 import sys
-from scrapefe import models, data
+from scrapefe import data, models, alphavantage
 
 def main(symbol):
-    """
+    """By default, creates/updates CSV in package data folder
     """
     symbol = symbol.lower()
-    xlsxPath = '%s%s%s.xlsx' % (data.getAbsPath(), os.path.sep, symbol)
-    if os.path.isfile(xlsxPath):
+    csvPath = '%s%s%s.csv' % (data.getAbsPath(), os.path.sep, symbol)
+    if os.path.isfile(csvPath):
         print('Loading, updating existing historical dataset')
-        hd = models.HistDat.fromXLSX(xlsxPath)
-        hd.update()
+        sec = models.Security(csvPath)
+        sec.update()
     else:
         print('Initializing new historical dataset')
-        hd = models.HistDat(symbol)
-        hd.initialize()
+        header, table = alphavantage.getHistory(symbol)
+        with open(csvPath, 'w') as f:
+            wtr = csv.writer(f, lineterminator='\n')
+            wtr.writerows([header])
+            wtr.writerows(table)
+        sec = models.Security(csvPath)
     print('Writing historical data to file')
-    hd.toXLSX(xlsxPath)
+    sec.save()
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:

@@ -1,142 +1,98 @@
-"""Common models for capturing exchange, index, security, and historical data
-
-model security with
-	name (symbol)
-	headers
-	table
-operations:
-	fromAV (initialize)
-	fromAV (incremental)
-	fromXLSX
-	toXLSX
-
+"""
 """
 
 import os
-import datetime
+import re
+import csv
 import numpy
-import openpyxl
-from matplotlib import pyplot
-from scrapefe import alphavantage as av
+from scrapefe import alphavantage
 
-class HistDat(object):
+class Security(object):
     """
     """
+    
+    def __init__(self, csvPath):
+        """Defines a security as a one-to-one correlation with a CSV file
+           containing a historical data table.
+        """
+        self.absPath, fileName = os.path.split(csvPath)
+        symbol, _ = os.path.splitext(fileName)
+        self.symbol = symbol.lower()
+        with open(csvPath, 'r') as f:
+            rdr = csv.reader(f)
+            rows = [row for row in rdr]
+        self.header = rows[0]
+        for ndx in range(1,len(rows)):
+            rows[ndx] = [float(v) for v in rows[ndx]]
+        self.table = numpy.array(rows[1:])
 
-    def __init__(self, symbol):
+    def getSeries(self, name):
         """
         """
-        self.symbol = symbol
-        self.header = tuple()
-        self.table = numpy.array([])
-
-    def initialize(self):
-        """Generate an initial dataset from full pull.
-        """
-        self.header, self.table = av.getHistory(self.symbol)
+        col_ndx = self.header.index(name)
+        return self.table[:,col_ndx]
 
     def update(self):
-        """Update existing dataset with recent entries
+        """Splices new entries from alphavantage to update historical data
+           table.
         """
-        header, table = av.getRecent(self.symbol)
+        header, table = alphavantage.getRecent(self.symbol)
+        if len(header) is not len(self.header) or any([header[i] != self.header[i] for i in range(len(header))]):
+            raise Exception('Headers mismatch; pivot required before update')
         tsNew_ndx = header.index('timestamp')
-        min_ts = min(table[:,tsNew_ndx])
-        tsOld_ndx = self.header.index('timestamp')
-        max_ts = max(self.table[:,tsOld_ndx])
-        if min_ts > max_ts:
-            # gap between old and new datasets, we need to do a full pull
-            header, table = av.getHistory(self.symbol)
-        # for now, insist on identical schemas
-        if len(header) is not len(self.header):
-            raise Exception('Identical schemas required')
-        if not all([header[i] == self.header[i] for i in range(len(header))]):
-            raise Exception('Identical schemas required')
-        isNew_flags = table[:,tsNew_ndx] > max_ts
-        newRows = table[isNew_flags,:]
+        mostRecent_ts = max(self.getSeries('timestamp'))
+        toSplice_flags = table[:,tsNew_ndx] > mostRecent_ts
+        if not any(toSplice_flags):
+            header, table = alphavantage.getHistory(self.symbol)
+            tsNew_ndx = header.index('timestamp')
+            toSplice_flags = table[:,tsNew_ndx] > mostRecent_ts
+        newRows = table[toSplice_flags,:]
         self.table = numpy.append(newRows, self.table, axis=0)
 
-    def toXLSX(self, xlsxPath):
-        """Save existing datset to xlsx worksheet. Sheet name is security
-           symbol.
+    def save(self):
         """
-        isNew = False
-        if os.path.isfile(xlsxPath):
-            wb = openpyxl.load_workbook(xlsxPath)
-        else:
-            wb = openpyxl.Workbook()
-            isNew = True
-        if self.symbol in wb.get_sheet_names():
-            ws = wb.get_sheet_by_name(self.symbol)
-        else:
-            ws = wb.create_sheet(self.symbol)
-            if isNew:
-                wb.remove_sheet(wb.get_sheet_by_name('Sheet'))
-        for jj, field in enumerate(self.header):
-            ws.cell(row=1, column=jj+1).value = field
-        for ii in range(self.table.shape[0]):
-            for jj in range(self.table.shape[1]):
-                value = self.table[ii,jj]
-                if jj is self.header.index('timestamp'):
-                    value = datetime.datetime.fromtimestamp(value)
-                ws.cell(row=ii+2, column=jj+1).value = value
-        wb.save(xlsxPath)
+        """
+        csvPath = '%s%s%s.csv' % (self.absPath, os.path.sep, self.symbol)
+        with open(csvPath, 'w') as f:
+            wtr = csv.writer(f, lineterminator='\n')
+            wtr.writerows([self.header])
+            wtr.writerows(self.table)
 
-    def plot(self):
-        """
-        """
-        hf = pyplot.figure()
-        hx = hf.add_subplot(111)
-        ti_nx = self.table[:,0]
-        plotFields_ndcs = [1,2,3,4,5]   
-        lgnStrs = []
-        for ndx in plotFields_ndcs:
-            hx.plot(ti_nx, self.table[:,ndx])
-            lgnStrs.append(self.header[ndx])
-        xTicks = hx.get_xticks()
-        xTickLabels = [datetime.datetime.fromtimestamp(tick).strftime('%U/%m/%d') for tick in xTicks]
-        hx.legend(lgnStrs)
-        hx.set_xticklabels(xTickLabels)
-        hx.set_title('Historical Data for %s' % self.symbol)
-        hx.set_xlabel('Date')
-        hx.set_ylabel('Price')
-        return hf
-
-    @classmethod
-    def fromXLSX(cls, xlsxPath, sheetName=None):
-        """Load existing dataset from xlsx worksheet
-        """
-        wb = openpyxl.load_workbook(xlsxPath)
-        if not sheetName:
-            sheetNames = wb.get_sheet_names()
-            sheetName = sheetNames[0]
-        ws = wb.get_sheet_by_name(sheetName)
-        obj = cls(sheetName)
-        obj.header = []
-        for jj in range(ws.max_column):
-            obj.header.append(ws.cell(row=1, column=jj+1).value)
-        obj.table = numpy.array([])
-        for ii in range(1,ws.max_row):
-            row = []
-            for jj in range(ws.max_column):
-                value = ws.cell(row=ii+1, column=jj+1).value
-                if jj is obj.header.index('timestamp'):
-                    value = value.timestamp()
-                row.append(value)
-            row = numpy.array(row)
-            if ii is 1:
-                obj.table = numpy.append(obj.table, row).reshape(1, -1)
-            else:
-                obj.table = numpy.append(obj.table, row.reshape(1, -1), axis=0)
-        return obj
-
-def test():
+class Portfolio(object):
     """
     """
-    #xlsxPath = __file__.replace('.py', '.xlsx')
-    #sq = HistDat('SQ')
-    #sq.initialize()
-    #sq.toXLSX(xlsxPath)
-    sq = HistDat.fromXLSX('test.xlsx', 'SQ')
 
-if __name__ == "__main__":
-    test()
+    def __init__(self, listPath):
+        """Defines a portfolio as a one-to-one correlation with a symbol
+           listing, co-located with a set of .CSV files for historical data of
+           each symbol security.
+        """
+        self.path, fileName = os.path.split(listPath)
+        self.name, _ = os.path.splitext(fileName)
+        with open(listPath, 'r') as f:
+            txt = f.read()
+        entries = re.split('\s+', txt)
+        self.symbols = [entry.lower() for entry in entries]
+
+    def getSecurity(self, symbol):
+        """
+        """
+        if symbol not in self.symbols:
+            raise Exception('Symbol "%s" not in portfolio' % symbol)
+        csvPath = '%s%s%s.csv' % (self.path, os.path.sep, symbol)
+        if not os.path.isfile(csvPath):
+            header, table = alphavantage.getHistory(symbol)
+            with open(csvPath, 'w') as f:
+                wtr = csv.writer(f, lineterminator='\n')
+                wtr.writerows([header])
+                wtr.writerows(table)
+        return Security(csvPath)
+
+    def addSecurity(self, symbol):
+        """Adds a new symbol and returns the new Security object. (A pull will
+           implicitly be performed by *getSecurity()* to create a new CSV.)
+        """
+        if symbol in self.symbols:
+            raise Exception('Symbol "%s" is already in portfolio' % symbol)
+        self.symbols.append(symbol)
+        return self.getSecurity(symbol)

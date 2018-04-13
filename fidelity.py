@@ -47,15 +47,25 @@ def getProps(rows):
         value = tdi[1].text.strip()
         props[key] = value
     return props
-        
+
+def capitalize(name):
+    """Lower-cases each letter in each word, except the first (capitalized).
+    """
+    words = name.split()
+    for ndx in range(len(words)):
+        word = words[ndx]
+        words[ndx] = word[0].upper() + word[1:].lower()
+    return ' '.join(words)
+
 def main(symbol):
     """
     """
     url = getUrl(symbol)
     soup = getSoup(url)
     rows = getRows(soup)
+    name = getName(soup)
     company = collections.OrderedDict({
-        'name': getName(soup),
+        'name': capitalize(name),
         'symbol': symbol
     })
     company.update(getProps(rows))

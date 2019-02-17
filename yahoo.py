@@ -10,6 +10,26 @@ import requests
 import datetime
 import warnings
 
+def getIndexComponents(symbol):
+    """
+    """
+    url = "https://finance.yahoo.com/quote/^%s/components" % symbol
+    res = requests.get(url)
+    soup = bs4.BeautifulSoup(res.content, "html.parser")
+    tables = soup.find_all("table")
+    thead = tables[0].find("thead")
+    tbody = tables[0].find("tbody")
+    thi = thead.find("tr").find_all("th")
+    header = [th.text.lower() for th in thi]
+    if "symbol" not in header:
+        raise Exception("Unable to resolve symbol header")
+    ndx = header.index("symbol")
+    symbols = []
+    for tr in tbody.find_all("tr"):
+        td = tr.find_all("td")[ndx]
+        symbols.append(td.text.lower())
+    return symbols
+
 def search(term):
     """
     """
